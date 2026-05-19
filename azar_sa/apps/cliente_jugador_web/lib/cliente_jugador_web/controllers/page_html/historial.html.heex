@@ -1,0 +1,132 @@
+<.app flash={@flash}>
+  <div class="space-y-6">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <a href={~p"/"} class="btn btn-ghost btn-sm btn-circle">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        </a>
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-base-content">Historial de Sorteos</h1>
+          <p class="text-sm text-base-content/60 font-medium">Resultados de loterías pasadas</p>
+        </div>
+      </div>
+
+      <div class="flex gap-2 bg-base-200 p-1 rounded-xl w-fit">
+        <a 
+          href="?orden=fecha" 
+          class={"px-4 py-2 rounded-lg text-sm font-semibold transition-all #{if @filtro_orden == "fecha", do: "bg-base-100 shadow-sm text-primary", else: "text-base-content/50 hover:text-base-content"}"}
+        >
+          Más Recientes
+        </a>
+        <a 
+          href="?orden=premio" 
+          class={"px-4 py-2 rounded-lg text-sm font-semibold transition-all #{if @filtro_orden == "premio", do: "bg-base-100 shadow-sm text-primary", else: "text-base-content/50 hover:text-base-content"}"}
+        >
+          Mejores Premios
+        </a>
+      </div>
+    </div>
+
+    <%= if Enum.empty?(@sorteos) do %>
+      <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="w-20 h-20 bg-base-200 rounded-full flex items-center justify-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-base-content">Sin historial</h3>
+        <p class="text-sm text-base-content/50 mt-1 max-w-sm">
+          Aún no hay sorteos finalizados en el sistema. Vuelve más tarde para ver los resultados.
+        </p>
+      </div>
+    <% else %>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <%= for s <- @sorteos do %>
+          <div class="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 border border-base-300 hover-lift">
+            <div class="card-body p-5">
+              <div class="flex justify-between items-start mb-3">
+                <h2 class="text-lg font-bold truncate pr-2 text-base-content" title={s.nombre}>{s.nombre}</h2>
+                <span class="badge badge-neutral shadow-sm whitespace-nowrap text-xs"><%= formatear_fecha(s.fecha) %></span>
+              </div>
+
+              <div class="bg-base-200/50 rounded-xl p-4 mb-4 border border-base-300 flex flex-col items-center justify-center">
+                <p class="text-xs uppercase font-bold text-base-content/50 mb-1">Número Ganador</p>
+                <div class="text-3xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-success to-info tracking-widest">
+                  <%= s.numero_ganador || "----" %>
+                </div>
+              </div>
+
+              <div class="space-y-4 mt-auto">
+                <div class="text-xs font-semibold uppercase text-base-content/40 tracking-wider">Detalle de Premios</div>
+                <%= for p <- s.premios do %>
+                  <div class="border-b border-base-200 pb-3 last:border-0 last:pb-0">
+                    <div class="flex justify-between items-center text-sm mb-1">
+                      <div>
+                        <span class="font-bold text-base-content/80">{p.nombre}</span>
+                        <%= if Map.get(p, :objeto, "") != "" do %>
+                          <span class="text-xs text-primary font-semibold ml-1">🎁 {p.objeto}</span>
+                        <% end %>
+                      </div>
+                      <div class="font-mono font-bold text-success">
+                        $<%= p.valor %>
+                      </div>
+                    </div>
+
+                    <%= if Map.get(p, :ganador_numero) do %>
+                      <div class="flex items-center gap-2 mb-2">
+                        <span class="badge badge-success badge-sm font-mono font-bold">#<%= p.ganador_numero %></span>
+                        <span class="text-xs text-base-content/50">Billete <%= p.ganador_billete %></span>
+                      </div>
+
+                      <%= if length(Map.get(p, :ganadores, [])) > 0 do %>
+                        <%
+                          ganadores_agrupados =
+                            Map.get(p, :ganadores, [])
+                            |> Enum.group_by(& &1.jugador)
+                            |> Enum.map(fn {jugador, fracciones} ->
+                              total = Enum.reduce(fracciones, 0, &(&1.premio_ganado + &2))
+                              num_fracciones = length(fracciones)
+                              %{
+                                jugador: jugador,
+                                num_fracciones: num_fracciones,
+                                total_ganado: total,
+                                billete_completo: num_fracciones == s.fracciones
+                              }
+                            end)
+                        %>
+                        <div class="bg-base-200/30 rounded-lg p-2 space-y-1">
+                          <%= for g <- ganadores_agrupados do %>
+                            <div class="flex justify-between text-[11px] items-center">
+                              <span class="font-medium text-base-content/70 flex items-center flex-wrap">
+                                <%= String.slice(g.jugador, 0, 3) %>***<%= String.slice(g.jugador, -1, 1) %>
+                                <%= if g.billete_completo do %>
+                                  <span class="badge badge-primary text-[9px] px-1 py-0 h-4 min-h-0 ml-1">Billete Completo</span>
+                                <% else %>
+                                  <span class="text-[9px] ml-1 opacity-70">(<%= g.num_fracciones %> fracc.)</span>
+                                <% end %>
+                              </span>
+                              <span class="font-bold text-success">$<%= g.total_ganado %></span>
+                            </div>
+                          <% end %>
+                        </div>
+                      <% else %>
+                        <p class="text-[10px] text-warning font-semibold">Premio desierto</p>
+                      <% end %>
+                    <% else %>
+                      <div class="text-xs text-base-content/30 italic">Premio desierto</div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</.app>

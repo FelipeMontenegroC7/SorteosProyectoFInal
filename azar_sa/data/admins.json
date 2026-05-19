@@ -1,0 +1,10 @@
+{
+    "admins": [
+        {
+            "creado_en": "2026-05-11 02:59:10.405770Z",
+            "id": "8e702a7e-6d3f-4483-b1a4-9d0161e02754",
+            "password_hash": "$2b$12$CRIvHn8.0kJCnK./FhyCkuis/zK1I172OBcv0/H.56M9lTzl9Vysi",
+            "usuario": "admin"
+        }
+    ]
+}

@@ -1,0 +1,104 @@
+<div class="min-h-screen flex items-center justify-center bg-base-200 px-4">
+  <div class="card w-full max-w-md bg-base-100 shadow-2xl border border-base-300">
+    <div class="card-body items-center pt-10 pb-10">
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-success to-info flex items-center justify-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-base-content mb-1">Crear Cuenta</h2>
+      <p class="text-base-content/50 mb-4 text-sm text-center">
+        ¿Ya tienes cuenta? <a href="/login" class="link link-success font-semibold">Inicia sesión</a>
+      </p>
+
+      <%= if @error do %>
+        <div class="alert alert-error shadow-lg mb-4 w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>Error al crear la cuenta. Verifica los datos.</span>
+        </div>
+      <% end %>
+
+      <form action="/registro" method="post" class="w-full space-y-4">
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="form-control w-full">
+            <label class="label"><span class="label-text font-semibold">Nombre</span></label>
+            <input
+              type="text"
+              name="nombre"
+              value={@changes["nombre"] || ""}
+              placeholder="Ingresa tu nombre"
+              class="input input-bordered w-full"
+              required
+            />
+          </div>
+          <div class="form-control w-full">
+            <label class="label"><span class="label-text font-semibold">Apellido</span></label>
+            <input
+              type="text"
+              name="apellido"
+              value={@changes["apellido"] || ""}
+              placeholder="Ingresa tu apellido"
+              class="input input-bordered w-full"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text font-semibold">Documento (C.C.)</span></label>
+          <input
+            type="text"
+            name="documento"
+            value={@changes["documento"] || ""}
+            placeholder="Ingresa tu documento"
+            class="input input-bordered w-full"
+            required
+            minlength="5"
+          />
+          <label class="label"><span class="label-text-alt text-base-content/40">Este será tu identificador único</span></label>
+        </div>
+        
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text font-semibold">Usuario</span></label>
+          <input
+            type="text"
+            name="usuario"
+            value={@changes["usuario"] || ""}
+            placeholder="Ingresa tu usuario"
+            class="input input-bordered w-full"
+            required
+            minlength="3"
+          />
+        </div>
+
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text font-semibold">Contraseña</span></label>
+          <input
+            type="password"
+            name="password"
+            placeholder="Ingresa tu contraseña"
+            class="input input-bordered w-full"
+            required
+            minlength="6"
+          />
+        </div>
+
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text font-semibold">Confirmar Contraseña</span></label>
+          <input
+            type="password"
+            name="password_confirmation"
+            placeholder="Ingresa tu contraseña"
+            class="input input-bordered w-full"
+            required
+            minlength="6"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-success w-full mt-2">Crear Cuenta</button>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,33 @@
+<div class="min-h-screen flex items-center justify-center bg-base-200 px-4">
+  <div class="card w-full max-w-md bg-base-100 shadow-2xl border border-base-300">
+    <div class="card-body items-center pt-10 pb-10">
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <h2 class="text-2xl font-bold text-base-content mb-1">HoySiCoronamos S.A.</h2>
+      <p class="text-base-content/50 mb-6 text-sm text-center">Panel Administrativo</p>
+
+      <%= if @error do %>
+        <div class="alert alert-error shadow-lg mb-4 w-full">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>Credenciales inválidas. Intenta de nuevo.</span>
+        </div>
+      <% end %>
+
+      <form action="/login" method="post" class="w-full space-y-4">
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text font-semibold">Usuario</span></label>
+          <input type="text" name="usuario" class="input input-bordered w-full" required />
+        </div>
+        <div class="form-control w-full">
+          <label class="label"><span class="label-text font-semibold">Contraseña</span></label>
+          <input type="password" name="password" class="input input-bordered w-full" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-full mt-2">Iniciar Sesión</button>
+      </form>
+    </div>
+  </div>
+</div>

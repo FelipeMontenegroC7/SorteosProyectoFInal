@@ -1,0 +1,143 @@
+<.app flash={@flash}>
+  <div class="max-w-2xl mx-auto">
+    <div class="flex items-center gap-3 mb-6">
+      <a href={~p"/sorteos/#{@sorteo.nombre}"} class="btn btn-ghost btn-sm btn-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+      </a>
+      <div>
+        <p class="text-sm text-base-content/50">Editando</p>
+        <h1 class="text-2xl font-bold text-base-content">{@sorteo.nombre}</h1>
+      </div>
+    </div>
+
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body">
+        <form action={"/sorteos/#{@sorteo.nombre}"} method="post" class="space-y-4" id="edit-sorteo-form">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="_method" value="put" />
+
+          <%!-- Toggle de estado --%>
+          <div class="form-control bg-base-200/50 p-4 rounded-xl border border-base-300">
+            <label class="label cursor-pointer justify-between">
+              <div>
+                <span class="label-text font-bold">Publicar sorteo</span>
+                <%= if length(@sorteo.ventas) > 0 do %>
+                  <p class="text-xs text-error mt-1 font-semibold">No se puede desactivar: ya hay compras realizadas.</p>
+                <% else %>
+                  <p class="text-xs text-base-content/50 mt-1">Si está inactivo, el sorteo quedará "Pendiente" y no será visible para los jugadores.</p>
+                <% end %>
+              </div>
+              <input type="hidden" name="estado" value="pendiente" />
+              <%= if length(@sorteo.ventas) > 0 do %>
+                <input type="checkbox" name="estado" value="activo" class="toggle toggle-success" checked disabled />
+              <% else %>
+                <input 
+                  type="checkbox" 
+                  name="estado" 
+                  value="activo" 
+                  class="toggle toggle-success" 
+                  id="toggle-estado"
+                  {if (@changeset.changes[:estado] || Atom.to_string(@sorteo.estado)) == "activo", do: [checked: true], else: []} 
+                />
+              <% end %>
+            </label>
+          </div>
+
+          <div class="form-control">
+            <label class="label"><span class="label-text font-semibold">Fecha</span></label>
+            <input type="datetime-local" name="fecha" value={@changeset.changes[:fecha] || @sorteo.fecha |> String.replace("Z", "") |> String.slice(0, 16)} class="input input-bordered w-full" required />
+          </div>
+
+          <div class="grid grid-cols-3 gap-4">
+            <div class="form-control">
+              <label class="label"><span class="label-text font-semibold">Valor billete ($)</span></label>
+              <input type="number" name="valor_billete" value={@changeset.changes[:valor_billete] || @sorteo.valor_billete} class="input input-bordered w-full" min="1" required />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text font-semibold">Fracciones</span></label>
+              <input type="number" name="fracciones" value={@changeset.changes[:fracciones] || @sorteo.fracciones} class="input input-bordered w-full" min="1" required />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text font-semibold">Billetes</span></label>
+              <input type="number" name="cantidad_billetes" value={@changeset.changes[:cantidad_billetes] || @sorteo.cantidad_billetes} class="input input-bordered w-full" min="1" required />
+            </div>
+          </div>
+
+          <div class="divider text-xs text-base-content/40">Descripción de Premios</div>
+
+          <div class="form-control">
+            <label class="label"><span class="label-text font-semibold">Premio por billete completo</span></label>
+            <textarea
+              name="descripcion_premio_completo"
+              class="textarea textarea-bordered w-full"
+              rows="2"
+              placeholder="Depende del premio establecido, si tienes un billete completo te llevas TODO el premio para ti."
+            ><%= @changeset.changes[:descripcion_premio_completo] || @sorteo.descripcion_premio_completo %></textarea>
+          </div>
+
+          <div class="form-control">
+            <label class="label"><span class="label-text font-semibold">Premio por fracción</span></label>
+            <textarea
+              name="descripcion_premio_fraccion"
+              class="textarea textarea-bordered w-full"
+              rows="2"
+              placeholder="Te llevas una parte dependiendo de la fracción."
+            ><%= @changeset.changes[:descripcion_premio_fraccion] || @sorteo.descripcion_premio_fraccion %></textarea>
+          </div>
+
+          <%!-- Calculadora compacta --%>
+          <div id="e-calc" class="rounded-lg border border-primary/25 bg-primary/5 p-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary/70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <span class="text-primary/70 font-semibold text-xs uppercase tracking-wide">Proyección Financiera</span>
+            </div>
+            <div class="flex flex-wrap gap-x-6 gap-y-2 items-center">
+              <span class="text-base-content/70">Precio/fracc: <strong id="e-cp" class="text-info font-bold">—</strong></span>
+              <span class="text-base-content/70">Fracciones: <strong id="e-ct" class="text-base-content font-bold">—</strong></span>
+              <span class="font-semibold border-l pl-6 border-base-300">Ganancia potencial: <strong id="e-cg" class="text-success text-base">—</strong></span>
+            </div>
+          </div>
+
+          <div class="flex justify-between pt-2">
+            <a href={~p"/sorteos/#{@sorteo.nombre}"} class="btn btn-ghost">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Toggle de estado
+      const toggle = document.getElementById("toggle-estado");
+      if (toggle) {
+        toggle.addEventListener("change", function(e) {
+          if (e.target.checked) {
+            const confirmed = confirm("¿Estás seguro de activar este sorteo?\n\nUna vez activado y se realice una compra, NO se podrá desactivar.");
+            if (!confirmed) { e.target.checked = false; }
+          }
+        });
+      }
+
+      // Calculadora compacta
+      var v=document.querySelector('input[name="valor_billete"]');
+      var f=document.querySelector('input[name="fracciones"]');
+      var c=document.querySelector('input[name="cantidad_billetes"]');
+      var cp=document.getElementById('e-cp'), ct=document.getElementById('e-ct'), cg=document.getElementById('e-cg');
+      function fmt(n){return '$'+n.toLocaleString('es-CO');}
+      function calc(){
+        var val=parseInt(v&&v.value)||0, fr=parseInt(f&&f.value)||0, cn=parseInt(c&&c.value)||0;
+        if(val>0&&fr>0&&cn>0){
+          var pf=Math.floor(val/fr), tot=fr*cn;
+          if(cp) cp.textContent=fmt(pf);
+          if(ct) ct.textContent=tot.toLocaleString('es-CO');
+          if(cg) cg.textContent=fmt(pf*tot);
+        }
+      }
+      [v,f,c].forEach(function(el){if(el)el.addEventListener('input',calc);});
+      calc();
+    });
+  </script>
+</.app>
+

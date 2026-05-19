@@ -1,0 +1,57 @@
+<.app flash={@flash}>
+  <div class="max-w-md mx-auto space-y-6">
+    <h1 class="text-3xl font-bold text-base-content">Recargar Créditos</h1>
+
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body">
+        <p class="text-sm text-base-content/60 mb-4">
+          Ingresa el monto y datos de tarjeta para recargar tu saldo.
+        </p>
+
+        <form action={~p"/recargar"} method="post" class="space-y-4">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+
+          <div class="form-control">
+            <label class="label"><span class="label-text font-semibold">Monto ($)</span></label>
+            <input
+              type="number"
+              name="monto"
+              min="1"
+              placeholder="Ej. 100"
+              class="input input-bordered w-full"
+              required
+            />
+          </div>
+
+          <div class="form-control">
+            <label class="label"><span class="label-text font-semibold">Número de tarjeta</span></label>
+            <input
+              type="text"
+              name="numero_tarjeta"
+              placeholder="1234 5678 9012 3456"
+              class="input input-bordered w-full"
+              required
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+              <label class="label"><span class="label-text font-semibold">Vencimiento</span></label>
+              <input type="text" name="vencimiento" placeholder="MM/AA" class="input input-bordered w-full" required />
+            </div>
+            <div class="form-control">
+              <label class="label"><span class="label-text font-semibold">CVV</span></label>
+              <input type="text" name="cvv" placeholder="123" class="input input-bordered w-full" required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success w-full mt-2">
+            Recargar ahora
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <p class="text-xs text-base-content/40 text-center">* Datos simulados. Solo actualiza tu saldo.</p>
+  </div>
+</.app>

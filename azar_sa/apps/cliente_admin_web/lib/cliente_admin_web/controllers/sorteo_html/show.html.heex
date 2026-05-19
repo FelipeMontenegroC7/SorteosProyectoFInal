@@ -1,0 +1,493 @@
+<.app flash={@flash}>
+  <div class="space-y-6">
+
+    <%!-- Header --%>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <a href={~p"/"} class="btn btn-ghost btn-sm btn-circle">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+          </a>
+          <h1 class="text-3xl font-bold text-base-content">{@sorteo.nombre}</h1>
+        </div>
+        <div class="flex flex-wrap gap-2 ml-12">
+          <%= if @sorteo.estado == :activo do %>
+            <span class="badge badge-success gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-success-content animate-pulse"></span>
+              Activo
+            </span>
+          <% else %>
+            <%= if @sorteo.estado == :pendiente do %>
+              <span class="badge badge-warning gap-1">
+                Pendiente
+              </span>
+            <% else %>
+              <span class="badge badge-neutral">Finalizado</span>
+            <% end %>
+          <% end %>
+          <span class="badge badge-outline">Billetes: {@sorteo.cantidad_billetes}</span>
+          <span class="badge badge-outline">Fracciones: {@sorteo.fracciones}</span>
+          <span class="badge badge-primary font-semibold">$<%= @sorteo.valor_billete %> / billete</span>
+          <span class="badge badge-accent font-semibold">$<%= div(@sorteo.valor_billete, max(@sorteo.fracciones, 1)) %> / fracción</span>
+        </div>
+      </div>
+      <div class="flex gap-2 ml-12 md:ml-0">
+        <%= if @sorteo.estado in [:activo, :pendiente] do %>
+          <a href={"/sorteos/#{@sorteo.nombre}/editar"} class="btn btn-outline btn-sm">Editar</a>
+        <% end %>
+        <%!-- Eliminar: solo si nadie ha comprado --%>
+        <%= if length(@sorteo.ventas) == 0 and @sorteo.estado != :finalizado do %>
+          <form action={"/sorteos/#{@sorteo.nombre}/eliminar"} method="post"
+            onsubmit={"return confirm('¿Eliminar el sorteo «#{@sorteo.nombre}»?\\nEsta acción no se puede deshacer.')"}>
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+            <button type="submit" class="btn btn-error btn-outline btn-sm gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              Eliminar
+            </button>
+          </form>
+        <% end %>
+      </div>
+    </div>
+
+    <%!-- Número ganador si finalizado --%>
+    <%= if @sorteo.estado == :finalizado && @sorteo.numero_ganador do %>
+      <div class="alert alert-success shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div>
+          <span class="font-semibold">Número ganador:</span>
+          <span class="text-2xl font-bold ml-2 font-mono">{@sorteo.numero_ganador}</span>
+        </div>
+      </div>
+    <% end %>
+
+    <%!-- Panel financiero: siempre visible --%>
+    <%
+      precio_f = if @sorteo.fracciones > 0, do: div(@sorteo.valor_billete, @sorteo.fracciones), else: 0
+      recaudado = precio_f * length(@sorteo.ventas)
+      total_fracs = @sorteo.cantidad_billetes * @sorteo.fracciones
+      ganancia_potencial = precio_f * total_fracs
+      fracs_vendidas = length(@sorteo.ventas)
+    %>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Precio / Fracc.</p>
+          <p class="text-xl font-bold text-info">$<%= precio_f %></p>
+        </div>
+      </div>
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Fracciones Vendidas</p>
+          <p class="text-xl font-bold"><%= fracs_vendidas %> / <%= total_fracs %></p>
+        </div>
+      </div>
+      <div class="card bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-accent/80 uppercase font-semibold flex items-center gap-1 justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Recaudado
+          </p>
+          <p class="text-xl font-bold text-accent">$<%= recaudado %></p>
+        </div>
+      </div>
+      <div class="card bg-gradient-to-br from-success/15 to-success/5 border border-success/30 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-success/70 uppercase font-semibold flex items-center gap-1 justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            Gan. Potencial
+          </p>
+          <p class="text-xl font-bold text-success">$<%= ganancia_potencial %></p>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Descripción de premios --%>
+    <%= if @sorteo.descripcion_premio_completo != "" or @sorteo.descripcion_premio_fraccion != "" do %>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body">
+          <h2 class="card-title text-lg">Información de Premios</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <%= if @sorteo.descripcion_premio_completo != "" do %>
+              <div class="bg-success/5 border border-success/20 rounded-xl p-4">
+                <p class="text-xs font-semibold uppercase text-success mb-1">Billete Completo</p>
+                <p class="text-sm text-base-content/80">{@sorteo.descripcion_premio_completo}</p>
+              </div>
+            <% end %>
+            <%= if @sorteo.descripcion_premio_fraccion != "" do %>
+              <div class="bg-info/5 border border-info/20 rounded-xl p-4">
+                <p class="text-xs font-semibold uppercase text-info mb-1">Fracción</p>
+                <p class="text-sm text-base-content/80">{@sorteo.descripcion_premio_fraccion}</p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <%!-- Countdown --%>
+    <%= if @sorteo.estado == :activo do %>
+      <div id="countdown" class="card bg-gradient-to-r from-primary to-accent text-primary-content shadow-lg mb-6" data-target={@tiempo_restante}>
+        <div class="card-body py-4">
+          <p class="text-xs uppercase font-semibold opacity-70 mb-2">Tiempo restante para el sorteo</p>
+          <div id="timer-display" class="flex justify-center gap-8 text-center">
+            <div>
+              <div id="days" class="text-3xl font-bold font-mono">00</div>
+              <div class="text-xs opacity-70">Días</div>
+            </div>
+            <div>
+              <div id="hours" class="text-3xl font-bold font-mono">00</div>
+              <div class="text-xs opacity-70">Horas</div>
+            </div>
+            <div>
+              <div id="minutes" class="text-3xl font-bold font-mono">00</div>
+              <div class="text-xs opacity-70">Min</div>
+            </div>
+            <div>
+              <div id="seconds" class="text-3xl font-bold font-mono">00</div>
+              <div class="text-xs opacity-70">Seg</div>
+            </div>
+          </div>
+          <div id="timer-waiting" class="hidden text-center py-2">
+            <p class="text-xl font-bold animate-pulse">¡El sorteo debe ejecutarse!</p>
+            <p class="text-xs opacity-70">El tiempo ha expirado. Usa el botón "Ejecutar ahora".</p>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <%!-- Grid principal --%>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <%!-- Premios --%>
+      <div class="lg:col-span-2 card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body">
+          <h2 class="card-title text-lg">Premios y Ganadores</h2>
+          <%= if @sorteo.premios == [] do %>
+            <p class="text-sm text-base-content/50 py-4">No hay premios definidos aún.</p>
+          <% else %>
+            <div class="overflow-x-auto">
+              <table class="table table-sm w-full">
+                <thead>
+                  <tr class="border-b border-base-300">
+                    <th>Orden</th>
+                    <th>Premio</th>
+                    <th>Valor</th>
+                    <th>Ganador</th>
+                    <%= if @sorteo.estado in [:activo, :pendiente] do %><th>Acciones</th><% end %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <%= for p <- @sorteo.premios do %>
+                    <tr class="border-b border-base-300/50 prize-row"
+                        data-id={p.id}
+                        data-nombre={p.nombre}
+                        data-objeto={Map.get(p, :objeto, "")}
+                        data-descripcion={Map.get(p, :descripcion, "")}
+                        data-valor={p.valor}>
+                      <td class="font-mono font-bold text-primary"><%= p.orden %></td>
+                      <td>
+                        <div class="font-medium">{p.nombre}</div>
+                        <%= if Map.get(p, :objeto, "") != "" do %>
+                          <div class="text-xs text-primary font-semibold mt-0.5">🎁 {p.objeto}</div>
+                        <% end %>
+                        <%= if Map.get(p, :descripcion, "") != "" do %>
+                          <div class="text-xs text-base-content/50 mt-0.5">{p.descripcion}</div>
+                        <% end %>
+                      </td>
+                      <td class="font-semibold">$<%= p.valor %></td>
+                      <td>
+                        <%= if Map.get(p, :ganador_numero) do %>
+                          <div class="mb-1">
+                            <span class="font-bold text-success font-mono">#<%= p.ganador_numero %></span>
+                            <span class="text-xs text-base-content/50 ml-1">(Billete <%= p.ganador_billete %>)</span>
+                          </div>
+                          <%= if length(Map.get(p, :ganadores, [])) > 0 do %>
+                            <%
+                              ganadores_agrupados =
+                                Map.get(p, :ganadores, [])
+                                |> Enum.group_by(& &1.jugador)
+                                |> Enum.map(fn {jugador, fracciones} ->
+                                  total = Enum.reduce(fracciones, 0, &(&1.premio_ganado + &2))
+                                  num_fracciones = length(fracciones)
+                                  %{
+                                    jugador: jugador,
+                                    num_fracciones: num_fracciones,
+                                    total_ganado: total,
+                                    billete_completo: num_fracciones == @sorteo.fracciones
+                                  }
+                                end)
+                            %>
+                            <div class="space-y-1">
+                              <%= for g <- ganadores_agrupados do %>
+                                <div class="text-sm">
+                                  <span class="font-medium"><%= g.jugador %></span> 
+                                  <%= if g.billete_completo do %>
+                                    <span class="badge badge-primary badge-sm mx-1">Billete Completo</span>
+                                  <% else %>
+                                    <span class="text-xs text-base-content/50 mx-1"><%= g.num_fracciones %> fracc.</span>
+                                  <% end %>
+                                  <span class="text-xs text-success font-semibold">($<%= g.total_ganado %>)</span>
+                                </div>
+                              <% end %>
+                            </div>
+                          <% else %>
+                            <span class="text-xs text-warning font-semibold">Premio desierto</span>
+                          <% end %>
+                        <% else %>
+                          <span class="text-base-content/30">—</span>
+                        <% end %>
+                      </td>
+                      <%= if @sorteo.estado in [:activo, :pendiente] do %>
+                        <td>
+                          <div class="flex gap-1 flex-col lg:flex-row">
+                            <button type="button" class="btn btn-ghost btn-xs text-info hover:bg-info/10" onclick={"editPrize(this, '#{@sorteo.nombre}')"}>Editar</button>
+                            <form action={"/sorteos/#{@sorteo.nombre}/premios/#{p.id}/eliminar"} method="post" onsubmit="return confirm('¿Eliminar este premio?');">
+                              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                              <button type="submit" class="btn btn-ghost btn-xs text-error hover:bg-error/10">Eliminar</button>
+                            </form>
+                          </div>
+                        </td>
+                      <% end %>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%!-- Panel de acciones --%>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body space-y-6">
+
+          <%!-- Añadir/Editar premio --%>
+          <%= if @sorteo.estado in [:activo, :pendiente] do %>
+            <div>
+              <div class="flex justify-between items-center mb-3">
+                <h3 id="prize-form-title" class="font-bold text-base-content">Añadir Premio</h3>
+                <button type="button" id="prize-form-cancel" class="btn btn-ghost btn-xs hidden" onclick="cancelEditPrize()">Cancelar</button>
+              </div>
+              <form id="prize-form" action={"/sorteos/#{@sorteo.nombre}/premios"} data-original-action={"/sorteos/#{@sorteo.nombre}/premios"} method="post" class="space-y-3">
+                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                <input type="hidden" id="prize-method" name="_method" value="put" disabled />
+                <div>
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Nombre</span></label>
+                  <input type="text" id="prize-nombre" name="nombre_premio" class="input input-bordered input-sm w-full" required placeholder="Ej. Premio Mayor" />
+                </div>
+                <div>
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Objeto (opcional)</span></label>
+                  <input type="text" id="prize-objeto" name="objeto" class="input input-bordered input-sm w-full" placeholder="Ej. Casa, Carro, Moto..." />
+                </div>
+                <div>
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Descripción</span></label>
+                  <textarea id="prize-descripcion" name="descripcion" class="textarea textarea-bordered textarea-sm w-full" rows="2" placeholder="Qué gana el ganador..."></textarea>
+                </div>
+                <div>
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Valor ($)</span></label>
+                  <input type="number" id="prize-valor" name="valor" class="input input-bordered input-sm w-full" min="1" required />
+                </div>
+                <div id="prize-orden-container">
+                  <label class="label py-1"><span class="label-text text-xs font-semibold">Orden (opcional)</span></label>
+                  <input type="number" id="prize-orden" name="orden" class="input input-bordered input-sm w-full" min="1" placeholder="Auto" />
+                </div>
+                <button type="submit" id="prize-submit" class="btn btn-primary btn-sm w-full">Guardar premio</button>
+              </form>
+            </div>
+          <% end %>
+
+          <%!-- Ejecutar sorteo --%>
+          <%= if @sorteo.estado == :activo and @sorteo.premios != [] do %>
+            <div class="border-t border-base-300 pt-4">
+              <h3 class="font-bold text-base-content mb-3">Ejecutar Sorteo</h3>
+              <%= if @sorteo.ventas == [] do %>
+                <div class="alert alert-warning text-xs mb-3 py-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                  <span>No hay ventas registradas aún. El sorteo requiere al menos una venta.</span>
+                </div>
+              <% end %>
+              <form action={"/sorteos/#{@sorteo.nombre}/ejecutar"} method="post" onsubmit="return confirm('¿Ejecutar sorteo? Se asignarán ganadores y se cerrará el sorteo.');">
+                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                <button type="submit" class="btn btn-error btn-outline btn-sm w-full gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  Ejecutar ahora
+                </button>
+              </form>
+              <p class="text-xs text-base-content/50 mt-2">Se elegirá un billete ganador al azar.</p>
+            </div>
+          <% end %>
+
+        </div>
+      </div>
+    </div>
+
+    <%!-- Billetes generados --%>
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-2">Billetes Generados</h2>
+        <p class="text-sm text-base-content/60 mb-4">
+          Cada billete tiene un número de 4 dígitos asignado al crear el sorteo.
+        </p>
+        <div class="overflow-x-auto max-h-80 overflow-y-auto border border-base-300 rounded-xl">
+          <table class="table table-sm table-pin-rows w-full">
+            <thead>
+              <tr>
+                <th># Billete</th>
+                <th>Número (4 dígitos)</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for b <- @sorteo.billetes_generados do %>
+                <tr class="hover:bg-base-200/50">
+                  <td><span class="font-mono font-bold"><%= b.billete %></span></td>
+                  <td><code class="bg-base-200 px-2 py-1 rounded font-bold text-primary font-mono"><%= b.numero %></code></td>
+                  <td>
+                    <% vendidas = Enum.count(@sorteo.ventas, &(&1.billete == b.billete)) %>
+                    <%= if vendidas >= @sorteo.fracciones do %>
+                      <span class="badge badge-error badge-sm">Agotado</span>
+                    <% else %>
+                      <%= if vendidas > 0 do %>
+                        <span class="badge badge-warning badge-sm"><%= vendidas %>/<%= @sorteo.fracciones %></span>
+                      <% else %>
+                        <span class="badge badge-success badge-sm">Disponible</span>
+                      <% end %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Ventas recientes --%>
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-2">Ventas Recientes</h2>
+        <p class="text-sm text-base-content/60 mb-4">Total: <strong><%= length(@sorteo.ventas) %></strong> fracciones vendidas</p>
+        <%= if @sorteo.ventas == [] do %>
+          <p class="text-base-content/40 text-sm py-4">No hay ventas registradas.</p>
+        <% else %>
+          <div class="overflow-x-auto max-h-64 overflow-y-auto border border-base-300 rounded-xl">
+            <table class="table table-sm table-pin-rows w-full">
+              <thead>
+                <tr>
+                  <th>Jugador</th>
+                  <th>Billete</th>
+                  <th>Fracción</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for v <- Enum.take(@sorteo.ventas, 50) do %>
+                  <tr class="hover:bg-base-200/50">
+                    <td class="font-medium">{v.jugador}</td>
+                    <td class="font-mono">{v.billete}</td>
+                    <td class="font-mono">{v.fraccion}</td>
+                    <td class="text-sm text-base-content/50">
+                      <%
+                        fecha_v = String.slice(v.inserted_at || "", 0, 16) |> String.replace("T", " ")
+                      %>
+                      <%= fecha_v %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+  function editPrize(btn, sorteoNombre) {
+    const row = btn.closest('.prize-row');
+    const id = row.dataset.id;
+    const nombre = row.dataset.nombre;
+    const objeto = row.dataset.objeto;
+    const descripcion = row.dataset.descripcion;
+    const valor = row.dataset.valor;
+
+    document.getElementById('prize-form-title').innerText = 'Editar Premio';
+    document.getElementById('prize-form-cancel').classList.remove('hidden');
+    document.getElementById('prize-submit').innerText = 'Actualizar premio';
+    
+    document.getElementById('prize-nombre').value = nombre;
+    document.getElementById('prize-objeto').value = objeto;
+    document.getElementById('prize-descripcion').value = descripcion;
+    document.getElementById('prize-valor').value = valor;
+    
+    document.getElementById('prize-orden-container').classList.add('hidden');
+
+    const form = document.getElementById('prize-form');
+    form.action = `/sorteos/${sorteoNombre}/premios/${id}`;
+    
+    const methodInput = document.getElementById('prize-method');
+    methodInput.disabled = false;
+  }
+
+  function cancelEditPrize() {
+    const form = document.getElementById('prize-form');
+    form.action = form.dataset.originalAction;
+
+    document.getElementById('prize-form-title').innerText = 'Añadir Premio';
+    document.getElementById('prize-form-cancel').classList.add('hidden');
+    document.getElementById('prize-submit').innerText = 'Guardar premio';
+    
+    document.getElementById('prize-nombre').value = '';
+    document.getElementById('prize-objeto').value = '';
+    document.getElementById('prize-descripcion').value = '';
+    document.getElementById('prize-valor').value = '';
+    
+    document.getElementById('prize-orden-container').classList.remove('hidden');
+    
+    const methodInput = document.getElementById('prize-method');
+    methodInput.disabled = true;
+  }
+</script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const countdownEl = document.getElementById("countdown");
+      if (!countdownEl) return;
+
+      const target = parseInt(countdownEl.dataset.target);
+      if (!target || target === 0) return;
+
+      const daysEl = document.getElementById("days");
+      const hoursEl = document.getElementById("hours");
+      const minutesEl = document.getElementById("minutes");
+      const secondsEl = document.getElementById("seconds");
+
+      function updateTimer() {
+        const now = Math.floor(Date.now() / 1000);
+        const remaining = target - now;
+
+        if (remaining <= 0) {
+          if (document.getElementById("timer-display")) document.getElementById("timer-display").classList.add("hidden");
+          if (document.getElementById("timer-waiting")) document.getElementById("timer-waiting").classList.remove("hidden");
+          return;
+        } else {
+          if (document.getElementById("timer-display")) document.getElementById("timer-display").classList.remove("hidden");
+          if (document.getElementById("timer-waiting")) document.getElementById("timer-waiting").classList.add("hidden");
+        }
+
+        const d = Math.floor(remaining / 86400);
+        const h = Math.floor((remaining % 86400) / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const s = remaining % 60;
+
+        if (daysEl) daysEl.textContent = d.toString().padStart(2, "0");
+        if (hoursEl) hoursEl.textContent = h.toString().padStart(2, "0");
+        if (minutesEl) minutesEl.textContent = m.toString().padStart(2, "0");
+        if (secondsEl) secondsEl.textContent = s.toString().padStart(2, "0");
+      }
+
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    });
+  </script>
+</.app>

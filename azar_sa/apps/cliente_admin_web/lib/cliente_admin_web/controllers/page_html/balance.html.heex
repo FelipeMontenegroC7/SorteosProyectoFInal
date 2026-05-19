@@ -1,0 +1,225 @@
+<.app flash={@flash}>
+  <div class="space-y-6">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <h1 class="text-3xl font-bold text-base-content">Balance Global</h1>
+      <div class="flex items-center gap-4">
+        <form id="filtro-form" action="/balance" method="get" class="flex flex-col sm:flex-row items-center gap-2">
+          <select name="sorteo" class="select select-bordered select-sm" onchange="document.getElementById('filtro-form').submit()">
+            <option value="todos" selected={@filtro_sorteo == "todos"}>Todos los sorteos</option>
+            <%= for nombre <- @nombres_sorteos do %>
+              <option value={nombre} selected={@filtro_sorteo == nombre}><%= nombre %></option>
+            <% end %>
+          </select>
+          <select name="estado" class="select select-bordered select-sm" onchange="document.getElementById('filtro-form').submit()">
+            <option value="todos" selected={@filtro_estado == "todos"}>Todos los estados</option>
+            <option value="activo" selected={@filtro_estado == "activo"}>Activos</option>
+            <option value="pendiente" selected={@filtro_estado == "pendiente"}>Pendientes</option>
+            <option value="finalizado" selected={@filtro_estado == "finalizado"}>Finalizados</option>
+          </select>
+        </form>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body py-5">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Usuarios</p>
+          <p class="text-2xl font-bold text-base-content">{@balance.usuarios_total}</p>
+        </div>
+      </div>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body py-5">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Ingresos Brutos</p>
+          <p class="text-2xl font-bold text-success">$<%= @balance.ingresos_global %></p>
+        </div>
+      </div>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body py-5">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Total Premios Ofertados</p>
+          <p class="text-2xl font-bold text-warning">-$<%= @balance.total_premios_ofertados %></p>
+        </div>
+      </div>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body py-5">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Premios Pagados</p>
+          <p class="text-2xl font-bold text-error">-$<%= @balance.total_premios_pagados %></p>
+        </div>
+      </div>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body py-5">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Ganancia Neta</p>
+          <p class={"text-2xl font-bold #{if @balance.ganancia_neta_global >= 0, do: "text-success", else: "text-error"}"}>
+            $<%= @balance.ganancia_neta_global %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row justify-between items-center bg-base-200/50 p-4 rounded-lg border border-base-300">
+      <div class="form-control">
+        <label class="cursor-pointer label gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-base-content/70" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+          </svg>
+          <span class="label-text font-semibold">Ocultar finalizados</span> 
+          <input type="checkbox" class="toggle toggle-primary" name="ocultar_finalizados" value="true" checked={@ocultar_finalizados} form="filtro-form" onchange="document.getElementById('filtro-form').submit()" />
+        </label>
+      </div>
+      
+      <%= if @filtro_sorteo != "todos" do %>
+        <div class="form-control">
+          <label class="cursor-pointer label gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            <span class="label-text font-semibold">Mostrar premios ofertados</span> 
+            <input type="checkbox" class="toggle toggle-warning" id="toggle-ofertados" onchange="toggleOfertados()" />
+          </label>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="card bg-base-100 shadow-md border border-base-300">
+      <div class="card-body">
+        <h3 class="card-title text-lg mb-4">Detalle por Sorteo</h3>
+        
+        <%= if @filtro_sorteo != "todos" do %>
+          <% 
+             b_filtro = List.first(@balances_filtrados) 
+             total_ofertado_sorteo = if b_filtro, do: Map.get(b_filtro, :premios, []) |> Enum.map(&Map.get(&1, :valor, 0)) |> Enum.sum(), else: 0
+             total_entregado_sorteo = if b_filtro, do: b_filtro.premios_pagados, else: 0
+          %>
+          <div id="lista-premios-ofertados" class="hidden mb-6">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
+              <h4 class="font-bold text-base-content flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+                Premios Ofertados en <%= @filtro_sorteo %>
+              </h4>
+              <div class="flex items-center gap-4 bg-base-200/50 px-4 py-2 rounded-lg border border-base-300">
+                <div class="text-right">
+                   <p class="text-xs uppercase font-semibold text-base-content/50">Total Ofertado</p>
+                   <p class="text-lg font-bold text-warning">$<%= total_ofertado_sorteo %></p>
+                </div>
+                <div class="w-px h-8 bg-base-300 mx-2"></div>
+                <div class="text-left">
+                   <p class="text-xs uppercase font-semibold text-base-content/50">Total Entregado</p>
+                   <p class="text-lg font-bold text-success">$<%= total_entregado_sorteo %></p>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <%= for b <- @balances_filtrados, p <- Map.get(b, :premios, []) do %>
+                <div class="bg-base-200/50 p-3 rounded-lg border border-base-300 flex justify-between items-center">
+                  <div>
+                    <p class="font-semibold text-sm">{p.nombre}</p>
+                    <%= if Map.get(p, :objeto, "") != "" do %>
+                      <p class="text-xs text-base-content/70">🎁 {p.objeto}</p>
+                    <% end %>
+                  </div>
+                  <div class="text-right">
+                    <p class="font-bold text-warning text-sm">$<%= p.valor %></p>
+                    <% 
+                      entregado = 
+                        Map.get(p, :ganadores, [])
+                        |> Enum.reduce(0, fn g, acc -> acc + Map.get(g, :premio_ganado, 0) end)
+                    %>
+                    <p class="text-xs text-base-content/50">Entregado: <span class="text-success font-semibold">$<%= entregado %></span></p>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+            <div class="divider my-2"></div>
+          </div>
+        <% end %>
+
+        <div class="overflow-x-auto">
+          <table class="table w-full">
+            <thead>
+              <tr class="border-b border-base-300">
+                <th class="font-semibold">Sorteo</th>
+                <th class="font-semibold">Estado</th>
+                <th class="font-semibold">Ventas</th>
+                <th class="font-semibold">Fracciones</th>
+                <th class="font-semibold">Ingresos Brutos</th>
+                <th class="font-semibold">Premios Pagados</th>
+                <th class="font-semibold">Ganancia Neta</th>
+                <th class="font-semibold">Ganadores</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for b <- @balances_filtrados do %>
+                <tr class={"hover:bg-base-200/50 border-b border-base-300/50 #{if b.estado == :finalizado, do: "row-finalizado", else: "row-activo"}"}>
+                  <td class="font-medium">{b.nombre}</td>
+                  <td>
+                    <%= if b.estado == :activo do %>
+                      <span class="badge badge-success badge-sm gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-success-content animate-pulse"></span>
+                        Activo
+                      </span>
+                    <% else %>
+                      <%= if b.estado == :pendiente do %>
+                        <span class="badge badge-warning badge-sm gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-warning-content"></span>
+                          Pendiente
+                        </span>
+                      <% else %>
+                        <span class="badge badge-neutral badge-sm">Finalizado</span>
+                      <% end %>
+                    <% end %>
+                  </td>
+                  <td><span class="badge badge-outline badge-sm">{b.ventas}</span></td>
+                  <td class="text-sm text-base-content/70"><%= b.ventas %>/<%= b.fracciones_total %></td>
+                  <td class="font-semibold text-success">$<%= b.ingreso %></td>
+                  <td class="font-semibold text-error">
+                    <%= if b.premios_pagados > 0 do %>
+                      -$<%= b.premios_pagados %>
+                    <% else %>
+                      <span class="text-base-content/30">$0</span>
+                    <% end %>
+                  </td>
+                  <td class={"font-bold #{if b.ganancia_neta >= 0, do: "text-success", else: "text-error"}"}>
+                    $<%= b.ganancia_neta %>
+                  </td>
+                  <td>
+                    <%= if b.num_ganadores > 0 do %>
+                      <span class="badge badge-primary badge-sm"><%= b.num_ganadores %></span>
+                    <% else %>
+                      <span class="text-base-content/30">0</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+            <tfoot>
+              <tr class="border-t-2 border-base-300 font-bold">
+                <td colspan="4" class="text-right">Totales:</td>
+                <td class="text-success">$<%= Enum.sum(Enum.map(@balances_filtrados, & &1.ingreso)) %></td>
+                <td class="text-error">-$<%= Enum.sum(Enum.map(@balances_filtrados, & &1.premios_pagados)) %></td>
+                <td class={"#{if Enum.sum(Enum.map(@balances_filtrados, & &1.ganancia_neta)) >= 0, do: "text-success", else: "text-error"}"}>
+                  $<%= Enum.sum(Enum.map(@balances_filtrados, & &1.ganancia_neta)) %>
+                </td>
+                <td><%= Enum.sum(Enum.map(@balances_filtrados, & &1.num_ganadores)) %></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</.app>
+
+<script>
+  function toggleOfertados() {
+    const isShown = document.getElementById('toggle-ofertados').checked;
+    const list = document.getElementById('lista-premios-ofertados');
+    if (list) {
+      if (isShown) {
+        list.classList.remove('hidden');
+      } else {
+        list.classList.add('hidden');
+      }
+    }
+  }
+</script>

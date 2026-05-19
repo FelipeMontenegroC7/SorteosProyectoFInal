@@ -1,0 +1,251 @@
+<.app flash={@flash}>
+  <div class="space-y-6">
+    <%!-- Header --%>
+    <div class="flex items-center gap-3">
+      <a href={~p"/"} class="btn btn-ghost btn-sm btn-circle">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+      </a>
+      <div>
+        <h1 class="text-2xl font-bold text-base-content">{@sorteo.nombre}</h1>
+        <p class="text-sm text-base-content/50">Sorteo: <%= String.slice(@sorteo.fecha, 0, 16) %></p>
+      </div>
+    </div>
+
+    <%!-- Info cards --%>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Billetes</p>
+          <p class="text-xl font-bold">{@sorteo.cantidad_billetes}</p>
+        </div>
+      </div>
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Fracciones</p>
+          <p class="text-xl font-bold">{@sorteo.fracciones}</p>
+        </div>
+      </div>
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Precio Fracción</p>
+          <p class="text-xl font-bold text-success">$<%= @precio_fraccion %></p>
+        </div>
+      </div>
+      <div class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-base-content/50 uppercase font-semibold">Disponibles</p>
+          <p class="text-xl font-bold text-info"><%= @sorteo.cantidad_billetes * @sorteo.fracciones - length(@sorteo.ventas) %></p>
+        </div>
+      </div>
+      <%!-- Dinero recaudado: siempre visible sin importar el estado --%>
+      <div class="card bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/30 shadow-sm col-span-2 md:col-span-1">
+        <div class="card-body py-4 items-center text-center">
+          <p class="text-xs text-accent/80 uppercase font-semibold flex items-center gap-1 justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Recaudado
+          </p>
+          <p class="text-xl font-bold text-accent">$<%= @precio_fraccion * length(@sorteo.ventas) %></p>
+          <p class="text-[10px] text-base-content/40"><%= length(@sorteo.ventas) %> fracciones vendidas</p>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Countdown --%>
+    <div id="countdown" class="card bg-gradient-to-r from-primary to-accent text-primary-content shadow-lg" data-target={@tiempo_restante}>
+      <div class="card-body py-4">
+        <p class="text-xs uppercase font-semibold opacity-70 mb-2">Tiempo restante para el sorteo</p>
+        <div id="timer-display" class="flex justify-center gap-8 text-center">
+          <div>
+            <div id="days" class="text-3xl font-bold font-mono">00</div>
+            <div class="text-xs opacity-70">Días</div>
+          </div>
+          <div>
+            <div id="hours" class="text-3xl font-bold font-mono">00</div>
+            <div class="text-xs opacity-70">Horas</div>
+          </div>
+          <div>
+            <div id="minutes" class="text-3xl font-bold font-mono">00</div>
+            <div class="text-xs opacity-70">Min</div>
+          </div>
+          <div>
+            <div id="seconds" class="text-3xl font-bold font-mono">00</div>
+            <div class="text-xs opacity-70">Seg</div>
+          </div>
+        </div>
+        <div id="timer-waiting" class="hidden text-center py-2">
+          <p class="text-xl font-bold animate-pulse">¡El sorteo está por iniciar!</p>
+          <p class="text-xs opacity-70">Esperando ejecución del administrador...</p>
+        </div>
+      </div>
+    </div>
+
+    <%!-- Premios e información --%>
+    <%= if @sorteo.premios != [] do %>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body">
+          <h2 class="card-title text-lg mb-3">Premios del Sorteo</h2>
+
+          <%= if @sorteo.descripcion_premio_completo != "" or @sorteo.descripcion_premio_fraccion != "" do %>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <%= if @sorteo.descripcion_premio_completo != "" do %>
+                <div class="bg-success/5 border border-success/20 rounded-xl p-4">
+                  <p class="text-xs font-semibold uppercase text-success mb-1">Billete Completo</p>
+                  <p class="text-sm text-base-content/80">{@sorteo.descripcion_premio_completo}</p>
+                </div>
+              <% end %>
+              <%= if @sorteo.descripcion_premio_fraccion != "" do %>
+                <div class="bg-info/5 border border-info/20 rounded-xl p-4">
+                  <p class="text-xs font-semibold uppercase text-info mb-1">Fracción</p>
+                  <p class="text-sm text-base-content/80">{@sorteo.descripcion_premio_fraccion}</p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <div class="overflow-x-auto">
+            <table class="table table-sm w-full">
+              <thead>
+                <tr class="border-b border-base-300">
+                  <th>#</th>
+                  <th>Premio</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                <%= for p <- @sorteo.premios do %>
+                  <tr class="border-b border-base-300/50">
+                    <td class="font-mono font-bold text-primary"><%= p.orden %></td>
+                    <td>
+                      <div class="font-medium">{p.nombre}</div>
+                      <%= if Map.get(p, :descripcion, "") != "" do %>
+                        <div class="text-xs text-base-content/50">{p.descripcion}</div>
+                      <% end %>
+                    </td>
+                    <td class="font-bold text-success">$<%= p.valor %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <%!-- Estado del sorteo --%>
+    <%= if @sorteo.estado == :finalizado do %>
+      <div class="alert alert-warning shadow-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <span>Este sorteo ya finalizó. Número ganador: <strong class="font-mono text-lg"><%= @sorteo.numero_ganador %></strong></span>
+      </div>
+    <% else %>
+      <%!-- Billetes disponibles para compra --%>
+      <div class="card bg-base-100 shadow-md border border-base-300">
+        <div class="card-body">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="card-title text-lg">Billetes Disponibles</h2>
+            <%!-- Compra rápida aleatoria --%>
+            <form action={"/sorteos/#{@sorteo.nombre}/comprar"} method="post" class="inline">
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <button type="submit" class="btn btn-outline btn-success btn-sm gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                Compra al azar
+              </button>
+            </form>
+          </div>
+
+          <%= if @disponibles == [] do %>
+            <p class="text-base-content/50 text-center py-4">No hay fracciones disponibles.</p>
+          <% else %>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <%= for b <- @disponibles do %>
+                <div class="border border-base-300 rounded-xl p-4 hover:border-success/50 transition-colors">
+                  <div class="flex items-center justify-between mb-3">
+                    <div>
+                      <span class="text-xs text-base-content/50 uppercase">Billete #<%= b.billete %></span>
+                      <div class="text-2xl font-bold font-mono text-primary"><%= b.numero %></div>
+                    </div>
+                    <%= if b.completo_disponible do %>
+                      <form action={"/sorteos/#{@sorteo.nombre}/comprar-completo"} method="post">
+                        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                        <input type="hidden" name="billete" value={b.billete} />
+                        <button type="submit" class="btn btn-success btn-xs" onclick={"return confirm('¿Comprar billete ##{b.billete} completo por $#{@sorteo.valor_billete}?')"}>
+                          Comprar completo
+                        </button>
+                      </form>
+                    <% end %>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <%= for f <- 1..b.total_fracciones do %>
+                      <%= if f in b.fracciones_libres do %>
+                        <form action={"/sorteos/#{@sorteo.nombre}/comprar-especifica"} method="post" class="inline">
+                          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                          <input type="hidden" name="billete" value={b.billete} />
+                          <input type="hidden" name="fraccion" value={f} />
+                          <button
+                            type="submit"
+                            class="btn btn-outline btn-xs btn-success font-mono min-w-[2.5rem]"
+                            onclick={"return confirm('¿Comprar fracción ##{f} del billete ##{b.billete} por $#{@precio_fraccion}?')"}
+                          >
+                            F<%= f %>
+                          </button>
+                        </form>
+                      <% else %>
+                        <span class="btn btn-xs btn-disabled font-mono min-w-[2.5rem] opacity-30">F<%= f %></span>
+                      <% end %>
+                    <% end %>
+                  </div>
+
+                  <p class="text-xs text-base-content/40 mt-2">
+                    <%= length(b.fracciones_libres) %>/<%= b.total_fracciones %> disponibles
+                  </p>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const countdownEl = document.getElementById("countdown");
+      if (!countdownEl) return;
+
+      const target = parseInt(countdownEl.dataset.target);
+      const daysEl = document.getElementById("days");
+      const hoursEl = document.getElementById("hours");
+      const minutesEl = document.getElementById("minutes");
+      const secondsEl = document.getElementById("seconds");
+
+      function updateTimer() {
+        const now = Math.floor(Date.now() / 1000);
+        const remaining = target - now;
+
+        if (remaining <= 0) {
+          document.getElementById("timer-display").classList.add("hidden");
+          document.getElementById("timer-waiting").classList.remove("hidden");
+          return;
+        } else {
+          document.getElementById("timer-display").classList.remove("hidden");
+          document.getElementById("timer-waiting").classList.add("hidden");
+        }
+
+        const d = Math.floor(remaining / 86400);
+        const h = Math.floor((remaining % 86400) / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const s = remaining % 60;
+
+        daysEl.textContent = d.toString().padStart(2, "0");
+        hoursEl.textContent = h.toString().padStart(2, "0");
+        minutesEl.textContent = m.toString().padStart(2, "0");
+        secondsEl.textContent = s.toString().padStart(2, "0");
+      }
+
+      updateTimer();
+      setInterval(updateTimer, 1000);
+    });
+  </script>
+</.app>
