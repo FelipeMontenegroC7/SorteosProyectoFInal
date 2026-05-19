@@ -1,4 +1,4 @@
-# Azar S.A. 🎰 — Plataforma de Sorteos y Loterías
+# HoySiCoronamos S.A. 🎰 — Plataforma de Sorteos y Loterías
 
 **Azar S.A.** es un sistema distribuido de venta y gestión de sorteos de lotería, desarrollado con **Elixir** utilizando una arquitectura de aplicación **Umbrella** (aplicación paraguas). 
 
