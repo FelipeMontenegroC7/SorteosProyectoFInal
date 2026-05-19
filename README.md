@@ -41,6 +41,8 @@ Portal web seguro e independiente para los administradores del sistema:
 
 El sistema inicializa datos de prueba de forma automática al arrancar por primera vez (`Seeds`). Puedes utilizar las siguientes credenciales para probar la plataforma:
 
+OJO EL PROYECTO LO SUBI A GIT HUB CON TODOS LOS DATOS HASTA EL MOMENTO. :) PERO LAS CONTRASEÑAS ESTAN HASHEADAS.
+
 ### Administrador
 * **Usuario:** `admin`
 * **Contraseña:** `admin123`
